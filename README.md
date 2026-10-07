@@ -1,10 +1,12 @@
-# HOODSTAR365 TV RADIO
+# HOODSTAR365
 
-Indie-artist radio, mixtape and podcast platform for hoodstar365tvradio.com.
-Vite + React front end, Supabase back end (live rotation + artist submissions).
+The home site for Elvin Torres Sr. (Hoodstar365). Everything sorted into eight channels:
+Music, TV Radio, Podcast, Books, Speaking, Streetwear, Apps, Build Series, plus the
+indie-artist "own your page" offer (QUEENEE).
 
-- On-air console reads the live `videos` rotation.
-- Artists submit paid placements -> `submissions` table.
-- Built to `/docs` for GitHub Pages.
+Vite + React front end, Supabase back end (live radio rotation + artist submissions).
+
+- Content lives in `src/data.js` (links, rates, products, channel list).
+- `npm run build` outputs to `/docs` for GitHub Pages (Settings > Pages > main / docs).
 
 HSW365 Media LLC / HOODSTAR ENT LLC. Turn Negative Into Positive.
