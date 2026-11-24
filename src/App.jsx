@@ -6,6 +6,20 @@ import {
   buyUrl, SINGLE_PRICE, EP_PRICE, EPS, PODCAST, APP_GROUPS,
 } from './data'
 
+// Owner PIN login (owner-login.js, loaded from index.html) sets window.HSW_OWNER and fires "hsw-owner".
+// Static site: this only changes what the owner sees; orders are reviewed by hand.
+function useOwnerPin() {
+  const [on, setOn] = useState(() => !!window.HSW_OWNER)
+  useEffect(() => {
+    const sync = () => setOn(!!window.HSW_OWNER)
+    window.addEventListener('hsw-owner', sync)
+    if (window.HSW_OWNER_READY) window.HSW_OWNER_READY.then(sync)
+    sync()
+    return () => window.removeEventListener('hsw-owner', sync)
+  }, [])
+  return on
+}
+
 function parseVideo(raw) {
   const url = (raw || '').trim()
   if (!url) return null
@@ -67,6 +81,7 @@ export default function App() {
   const [idx, setIdx] = useState(0)
   const [pasteVal, setPasteVal] = useState('')
   const [cart, setCart] = useState([])
+  const vip = useOwnerPin()
   const [form, setForm] = useState({ artist_name: '', email: '', phone: '', link: '', notes: '' })
   const [order, setOrder] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -135,9 +150,9 @@ export default function App() {
       phone: form.phone.trim() || null,
       link: form.link.trim() || null,
       placements: cart.map((c) => ({ id: c.id, name: c.name, price: c.price })),
-      total,
+      total: vip ? 0 : total,
       status: 'pending',
-      notes: form.notes.trim() || null,
+      notes: vip ? ['Owner VIP: no charge', form.notes.trim()].filter(Boolean).join(' / ') : (form.notes.trim() || null),
     }
     const { error } = await supabase.from('submissions').insert(row)
     setBusy(false)
@@ -161,6 +176,7 @@ export default function App() {
           <nav className="navlinks">
             {NAV.map((c) => <a key={c.id} href={'#' + c.id}>{c.name}</a>)}
           </nav>
+          {vip && <span className="vipbadge" title="Owner PIN session: placements are free for you">VIP · Owner</span>}
           <a href="#merch" className="btn gold sm">Shop</a>
         </div>
       </header>
@@ -431,17 +447,23 @@ export default function App() {
                 : cart.map((c) => (
                   <div key={c.id} className="cartrow"><span>{c.name}</span><span className="cartp">${c.price}<button className="rm" onClick={() => toggle(c)}>Remove</button></span></div>
                 ))}
-              <div className="total"><span>Total</span><span className="n">${total}</span></div>
+              <div className="total"><span>{vip ? 'Total / VIP · Owner' : 'Total'}</span><span className="n">${vip ? 0 : total}</span></div>
               <button className="btn gold wide" disabled={busy} onClick={submit}>{busy ? 'Saving' : 'Submit order'}</button>
-              <p className="fine">You get an order ID and payment details as soon as you submit.</p>
+              <p className="fine">{vip ? 'VIP · Owner: placements are free for you. You still get an order ID.' : 'You get an order ID and payment details as soon as you submit.'}</p>
             </div>
           ) : (
             <div className="cart confirm">
               <div className="carthead">Order received</div>
               <div className="oid">{order.order_id}</div>
-              <p className="empty">Locked in for <b>{order.artist_name}</b>, total <b>${order.total}</b>. Send payment with your order ID in the note, then email your file if you did not link it.</p>
-              <div className="payline"><span>Cash App</span><b>{CASHAPP}</b></div>
-              <div className="payline"><span>PayPal</span><b>{ORDER_EMAIL}</b></div>
+              {vip && order.total === 0 ? (
+                <p className="empty">Locked in for <b>{order.artist_name}</b>. VIP · Owner: no payment needed. Email your file if you did not link it.</p>
+              ) : (
+                <>
+                  <p className="empty">Locked in for <b>{order.artist_name}</b>, total <b>${order.total}</b>. Send payment with your order ID in the note, then email your file if you did not link it.</p>
+                  <div className="payline"><span>Cash App</span><b>{CASHAPP}</b></div>
+                  <div className="payline"><span>PayPal</span><b>{ORDER_EMAIL}</b></div>
+                </>
+              )}
               <div className="payline"><span>Email your file</span><b>{ORDER_EMAIL}</b></div>
               <button className="btn wide" onClick={() => { setOrder(null); setCart([]); setForm({ artist_name: '', email: '', phone: '', link: '', notes: '' }) }}>Start a new order</button>
             </div>
